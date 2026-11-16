@@ -3,7 +3,7 @@ import math
 from pathlib import Path
 from parser import read_instance
 from validator import is_valid_route
-from cost_calculator import calculate_route_cost
+from cost_calculator import CostCalculator
 
 
 # Gjenerimi i rruges fillestare
@@ -91,9 +91,10 @@ def simulated_annealing(
     if current_route is None:
         return None, float("inf")
 
-    current_cost = calculate_route_cost(
-        current_route, arcs, relations
-    )
+    # Krijimi i CostCalculator vetem nje here
+    calculator = CostCalculator(arcs, relations)
+
+    current_cost = calculator.calculate(current_route)
 
     best_route = current_route.copy()
     best_cost = current_cost
@@ -106,9 +107,8 @@ def simulated_annealing(
 
         if is_valid_route(neighbor, n, arcs):
 
-            neighbor_cost = calculate_route_cost(
-                neighbor, arcs, relations
-            )
+            # Llogaritja e optimizuar e kostos
+            neighbor_cost = calculator.calculate(neighbor)
 
             delta = neighbor_cost - current_cost
 

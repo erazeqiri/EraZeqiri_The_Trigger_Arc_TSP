@@ -1,5 +1,3 @@
-
-
 from pathlib import Path
 from parser import read_instance
 
@@ -12,34 +10,60 @@ def get_arc_cost(arcs, from_node, to_node):
     return None
 
 
-def calculate_route_cost(route, arcs, relations):
-    total_cost = 0
-    active_costs = {}
+class CostCalculator:
 
-    for i in range(len(route) - 1):
-        from_node = route[i]
-        to_node = route[i + 1]
-
-        current_arc = None
+    def __init__(self, arcs, relations):
+        self.arc_lookup = {}
+        self.trigger_lookup = {}
 
         for arc in arcs:
-            if arc["from"] == from_node and arc["to"] == to_node:
-                current_arc = arc
-                break
-
-        if current_arc is None:
-            return None
-
-        arc_id = current_arc["id"]
-
-        cost = active_costs.get(arc_id, current_arc["cost"])
-        total_cost += cost
+            key = (arc["from"], arc["to"])
+            self.arc_lookup.setdefault(key, arc)
 
         for relation in relations:
-            if relation["trigger_id"] == arc_id:
-                active_costs[relation["target_id"]] = relation["new_cost"]
+            trigger_id = relation["trigger_id"]
 
-    return total_cost
+            if trigger_id not in self.trigger_lookup:
+                self.trigger_lookup[trigger_id] = []
+
+            self.trigger_lookup[trigger_id].append(
+                (relation["target_id"], relation["new_cost"])
+            )
+
+    def calculate(self, route):
+        total_cost = 0
+        active_costs = {}
+
+        for i in range(len(route) - 1):
+            from_node = route[i]
+            to_node = route[i + 1]
+
+            current_arc = self.arc_lookup.get(
+                (from_node, to_node)
+            )
+
+            if current_arc is None:
+                return None
+
+            arc_id = current_arc["id"]
+
+            cost = active_costs.get(
+                arc_id, current_arc["cost"]
+            )
+
+            total_cost += cost
+
+            for target_id, new_cost in self.trigger_lookup.get(
+                arc_id, []
+            ):
+                active_costs[target_id] = new_cost
+
+        return total_cost
+
+
+def calculate_route_cost(route, arcs, relations):
+    calculator = CostCalculator(arcs, relations)
+    return calculator.calculate(route)
 
 
 if __name__ == "__main__":
