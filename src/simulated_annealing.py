@@ -6,51 +6,66 @@ from validator import is_valid_route
 from cost_calculator import CostCalculator
 
 
-# Gjenerimi i rruges fillestare
-def generate_initial_route(n, arcs, max_steps=10000):
-    adjacency = {node: [] for node in range(n)}
+# Gjenerimi i rruges fillestare me heuristike
+def generate_initial_route(
+    n, arcs, max_steps=100000, max_restarts=10
+):
+    adjacency = {node: set() for node in range(n)}
 
     for arc in arcs:
-        adjacency[arc["from"]].append(arc["to"])
+        adjacency[arc["from"]].add(arc["to"])
 
-    route = [0]
-    visited = {0}
-    steps = 0
+    for attempt in range(max_restarts):
 
-    def backtrack():
-        nonlocal steps
+        route = [0]
+        visited = {0}
+        steps = 0
 
-        if steps >= max_steps:
+        def backtrack():
+            nonlocal steps
+
+            if steps >= max_steps:
+                return False
+
+            steps += 1
+
+            if len(route) == n:
+                return 0 in adjacency[route[-1]]
+
+            current = route[-1]
+
+            neighbors = [
+                node for node in adjacency[current]
+                if node not in visited
+            ]
+
+            random.shuffle(neighbors)
+
+            # Perparesi nyjeve me me pak fqinje te pavizituar
+            neighbors.sort(
+                key=lambda node: len(
+                    adjacency[node] - visited - {node}
+                )
+            )
+
+            for node in neighbors:
+
+                route.append(node)
+                visited.add(node)
+
+                if backtrack():
+                    return True
+
+                route.pop()
+                visited.remove(node)
+
+                if steps >= max_steps:
+                    break
+
             return False
 
-        steps += 1
-
-        if len(route) == n:
-            return 0 in adjacency[route[-1]]
-
-        current = route[-1]
-
-        neighbors = [
-            node for node in adjacency[current]
-            if node not in visited
-        ]
-
-        random.shuffle(neighbors)
-
-        for node in neighbors:
-            route.append(node)
-            visited.add(node)
-
-            if backtrack():
-                return True
-
-            route.pop()
-            visited.remove(node)
-
-        return False
-
-    if backtrack():
-        return route + [0]
+        if backtrack():
+            return route + [0]
 
     return None
 
