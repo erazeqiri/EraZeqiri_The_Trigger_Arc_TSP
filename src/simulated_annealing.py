@@ -1,6 +1,8 @@
+
 import random
 import math
 from pathlib import Path
+
 from parser import read_instance
 from validator import is_valid_route
 from cost_calculator import CostCalculator
@@ -70,26 +72,46 @@ def generate_initial_route(
     return None
 
 
-# Gjenerimi i nje zgjidhjeje fqinje
-def generate_neighbor(route):
-    neighbor = route.copy()
+# Gjenerimi i nje zgjidhjeje fqinje te vlefshme
+def generate_neighbor(route, arcs=None, max_attempts=100):
+    if len(route) < 4:
+        return route.copy()
 
-    if len(neighbor) < 4:
-        return neighbor
+    existing_arcs = None
 
-    i, j = random.sample(
-        range(1, len(neighbor) - 1), 2
-    )
+    if arcs is not None:
+        existing_arcs = {
+            (arc["from"], arc["to"])
+            for arc in arcs
+        }
 
-    if random.random() < 0.5:
-        # Swap
-        neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
-    else:
-        # Relocate
-        node = neighbor.pop(i)
-        neighbor.insert(j, node)
+    for _ in range(max_attempts):
+        neighbor = route.copy()
 
-    return neighbor
+        i, j = random.sample(
+            range(1, len(neighbor) - 1), 2
+        )
+
+        if random.random() < 0.5:
+            # Swap
+            neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
+        else:
+            # Relocate
+            node = neighbor.pop(i)
+            neighbor.insert(j, node)
+
+        if existing_arcs is None:
+            return neighbor
+
+        # Kontrollo nese te gjitha harqet ekzistojne
+        if all(
+            (neighbor[k], neighbor[k + 1]) in existing_arcs
+            for k in range(len(neighbor) - 1)
+        ):
+            return neighbor
+
+    # Nese nuk gjendet fqinj i vlefshem
+    return route.copy()
 
 
 # Algoritmi Simulated Annealing
@@ -118,11 +140,11 @@ def simulated_annealing(
 
     for iteration in range(max_iterations):
 
-        neighbor = generate_neighbor(current_route)
+        # Gjenerimi i nje fqinji te vlefshem
+        neighbor = generate_neighbor(current_route, arcs)
 
         if is_valid_route(neighbor, n, arcs):
 
-            # Llogaritja e optimizuar e kostos
             neighbor_cost = calculator.calculate(neighbor)
 
             delta = neighbor_cost - current_cost
@@ -160,4 +182,7 @@ if __name__ == "__main__":
     print("Kostoja me e mire:", best_cost)
 
     if best_route is not None:
-        print("E vlefshme:", is_valid_route(best_route, n, arcs))
+        print(
+            "E vlefshme:",
+            is_valid_route(best_route, n, arcs)
+        )
