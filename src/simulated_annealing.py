@@ -1,3 +1,4 @@
+
 import random
 import math
 from pathlib import Path
@@ -87,23 +88,72 @@ def generate_neighbor(route, arcs=None, max_attempts=100):
     for _ in range(max_attempts):
         neighbor = route.copy()
 
-        i, j = random.sample(
-            range(1, len(neighbor) - 1), 2
-        )
+        operation = random.choice([
+            "swap",
+            "relocate",
+            "segment"
+        ])
 
-        if random.random() < 0.5:
-            # Swap
-            neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
-        else:
-            # Relocate
+        if operation == "swap":
+            i, j = random.sample(
+                range(1, len(neighbor) - 1), 2
+            )
+
+            neighbor[i], neighbor[j] = (
+                neighbor[j], neighbor[i]
+            )
+
+        elif operation == "relocate":
+            i, j = random.sample(
+                range(1, len(neighbor) - 1), 2
+            )
+
             node = neighbor.pop(i)
             neighbor.insert(j, node)
 
-        if existing_arcs is None:
-            return neighbor
+        else:
+            # Zhvendos nje segment me te pakten 2 nyje
+            internal = neighbor[1:-1]
+
+            if len(internal) < 3:
+                continue
+
+            start = random.randrange(
+                0, len(internal) - 1
+            )
+
+            end = random.randrange(
+                start + 2, len(internal) + 1
+            )
+
+            segment = internal[start:end]
+
+            remaining = (
+                internal[:start] + internal[end:]
+            )
+
+            insert_at = random.randrange(
+                len(remaining) + 1
+            )
+
+            new_internal = (
+                remaining[:insert_at]
+                + segment
+                + remaining[insert_at:]
+            )
+
+            neighbor = (
+                [route[0]]
+                + new_internal
+                + [route[-1]]
+            )
+
+        # Mos prano rrugen e pandryshuar
+        if neighbor == route:
+            continue
 
         # Kontrollo nese te gjitha harqet ekzistojne
-        if all(
+        if existing_arcs is None or all(
             (neighbor[k], neighbor[k + 1]) in existing_arcs
             for k in range(len(neighbor) - 1)
         ):
