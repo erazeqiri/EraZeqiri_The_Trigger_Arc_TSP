@@ -1,4 +1,3 @@
-
 import random
 import math
 from pathlib import Path
@@ -142,6 +141,15 @@ def simulated_annealing(
 
         # Gjenerimi i nje fqinji te vlefshem
         neighbor = generate_neighbor(current_route, arcs)
+
+        # Mos e llogarit perseri koston nese rruga nuk ndryshon
+        if neighbor == current_route:
+            temperature *= cooling_rate
+
+            if temperature < 0.001:
+                break
+
+            continue
 
         if is_valid_route(neighbor, n, arcs):
 
